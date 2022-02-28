@@ -26,9 +26,12 @@ check if min sep can be increased to acute_angle / 2
 
 
 TODO: 
-Solve divide by 0 giving nan intersection point - vertical line gradients = inf
-Check why 6 and 7 are giving incorrect angles
+Check how m = inf is handled by acute checker
+Check why case 7 is incorrectly classified as acute
+
+Figure out how to handle inf gradients. Vectorisaiton of lines?
 '''
+
 def check_acute_seperation(acute_angle, edge_map, unique_lines):
     '''
     Checks seperation between edge pixels end points from intersection point to find whether acute or obtuse seperation
@@ -60,12 +63,11 @@ def check_acute_seperation(acute_angle, edge_map, unique_lines):
     y_int = m1*x_int + c1
 
     intersection_point = np.asarray([y_int,x_int]) # y=i, x=j, flipped for array indexing
-    print(f'intersection point: ({y_int},{x_int})')
     
     # find distance of edge pixels from intersection point 
     pos_diff_array = pos_array - intersection_point # find difference in i,j indices
     dist_array = np.sum(pos_diff_array**2,1)**0.5 # find abs difference 
-    sep_array = [np.arctan(delta_j/delta_i) if delta_i != 0 else np.pi/2 for delta_j, delta_i in pos_diff_array]
+    sep_array = [np.arctan(delta_j/delta_i) if delta_i != 0 else np.pi/2 for delta_i, delta_j in pos_diff_array]
     
     # find the pair of edge pixels that pass seperation threshold
     min_seperation = acute_angle/3 # 1/3rd since exact half sep might not exist 
@@ -74,10 +76,10 @@ def check_acute_seperation(acute_angle, edge_map, unique_lines):
     edge_sep_array = np.abs(sep_array - sep_array[edge_point_1_idx])
     thresholded_edge_sep_array = np.where(edge_sep_array >= min_seperation, 1, 0)
     edge_point_2_idx = np.argmax(thresholded_edge_sep_array)
-
-    angle = sep_array[edge_point_1_idx] + sep_array[edge_point_2_idx]
     
-    print(f'edge points used: {pos_array[edge_point_1_idx]}, {pos_array[edge_point_2_idx]}')
+    # find angle between lines by adding seperation angles
+    angle = np.abs(sep_array[edge_point_1_idx]) + np.abs(sep_array[edge_point_2_idx])
+    
     # return acute bool
     if angle <= np.pi/2:
         return True
@@ -159,8 +161,8 @@ def find_angle(png_path):
         cv2.line(img,(x1,y1),(x2,y2),(0,0,255),2)
     
     # show lines and edges
-    # plt.imshow(img)
-    # plt.show()
+    plt.imshow(img)
+    plt.show()
 
     # remove parallel lines from cartesian_line_param_list
     '''re write this better'''
